@@ -16,11 +16,6 @@ function love.update(dt)
 
 end
 
-function nextstep()
-
-
-end
-
 
 function love.draw()
 
