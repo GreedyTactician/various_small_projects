@@ -1,6 +1,8 @@
+local chain = {}
+
 --creates a table describing the links of a chain
 --the chain will lie on the x axis starting from the origin
-function new_chain(length, nodes, stretch_factor)
+function chain.new_chain(length, nodes, stretch_factor)
   local chain = {}
   chain.n = nodes
   chain.k = stretch_factor
@@ -23,7 +25,7 @@ local function sign(number)
 end
 
 --does a simple newton method iteration of the chain
-function iterate(chain, dt)
+function chain.iterate(chain, dt)
   local xforces = {}
   local yforces = {}
 
@@ -55,4 +57,5 @@ function iterate(chain, dt)
     chain[i][1] = chain[i][1] + chain[i][3]
     chain[i][2] = chain[i][2] + chain[i][4]
   end
-end 
+end
+return chain
