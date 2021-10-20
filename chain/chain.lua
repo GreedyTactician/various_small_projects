@@ -2,12 +2,14 @@ local chain = {}
 
 --creates a table describing the links of a chain
 --the chain will lie on the x axis starting from the origin
-function chain.new_chain(length, nodes, stretch_factor)
+function chain.new_chain(length, nodes, stretch_factor, propagation)
+  propagation = propagation or 1
   local chain = {}
   chain.n = nodes
-  chain.k = stretch_factor
   local nodedistance = (length/nodes)
+  chain.k = stretch_factor * (propagation/nodedistance)^2
   chain.nodedistance = nodedistance
+  chain.damping = 0.995
   for i = 1, nodes do
     table.insert(chain, {nodedistance*(i-1), 0, 0, 0}) --{x, y, vx, vy}
   end
@@ -50,12 +52,14 @@ function chain.iterate(chain, dt)
 
   for i = 2, chain.n-1 do
     --update velocity
-    chain[i][3] = chain[i][3] + xforces[i] * dt
-    chain[i][4] = chain[i][4] + yforces[i] * dt
+    chain[i][3] = chain[i][3] * chain.damping + xforces[i] * dt
+    chain[i][4] = chain[i][4] * chain.damping + yforces[i] * dt
 
     --update position
     chain[i][1] = chain[i][1] + chain[i][3]
     chain[i][2] = chain[i][2] + chain[i][4]
   end
 end
+
+
 return chain

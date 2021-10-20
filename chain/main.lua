@@ -6,7 +6,7 @@ function love.load()
 
   chain = require('chain')
 
-  achain = chain.new_chain(100, 1000, 1)
+  achain = chain.new_chain(100, 200, 5)
 
 
 end
@@ -52,6 +52,8 @@ function love.mousepressed( x, y, button, istouch, presses )
 end
 
 function love.mousemoved( x, y, dx, dy, istouch )
+  achain[1][1] = x
+  achain[1][2] = y
 
 end
 
