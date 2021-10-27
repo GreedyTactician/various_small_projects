@@ -1,4 +1,5 @@
-
+--Author: Ilann Cote
+--Written on the 26th of October 2021
 
 function love.load()
 

@@ -1,3 +1,5 @@
+--Author: Ilann Cote
+--Written on the 26th of October 2021
 local chain = {}
 
 --creates a table describing the links of a chain
@@ -26,7 +28,7 @@ local function sign(number)
    end
 end
 
---does a simple newton method iteration of the chain
+--does a simple euler method iteration of the chain
 function chain.iterate(chain, dt)
   local xforces = {}
   local yforces = {}
