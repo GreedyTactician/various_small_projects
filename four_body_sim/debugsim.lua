@@ -2,17 +2,17 @@
 --Written on the 26th of October 2021
 
 local sim = {}
-
-local createvec = require('createvec')
+inspect = require("inspect")
+createvec = require('createvec')
 -- local inspect = require("inspect")
 -- local remove_all_metatables = function(item, path)
 --   if path[#path] ~= inspect.METATABLE then return item end
 -- end
 -- local removemtoption = {process = remove_all_metatables}
 
-local RK = require('rk')
+RK = require('rk')
 
-local function forwardeuler(fun, tspan, y0, step)
+function forwardeuler(fun, tspan, y0, step)
   local ret = {}
   local tn = tspan[1]
   local yn = y0
@@ -27,10 +27,9 @@ local function forwardeuler(fun, tspan, y0, step)
   return ret
 end
 
-local function getaccelerationatapointdueto_a_body(x, p, m)
+function getaccelerationatapointdueto_a_body(x, p, m)
   local distancevector = p - x
   local distancescalar = distancevector:length()
-  print(distancescalar)
   if distancescalar == 0 then
     return 0 * distancevector
   end
@@ -40,7 +39,7 @@ local function getaccelerationatapointdueto_a_body(x, p, m)
 end
 
 
-local function getaccelerationatapointdueto_multiple_bodies(v, bodies, bodytoskip)
+function getaccelerationatapointdueto_multiple_bodies(v, bodies, bodytoskip)
 
   local ret = createvec(0, 0)
   local p
@@ -53,16 +52,33 @@ local function getaccelerationatapointdueto_multiple_bodies(v, bodies, bodytoski
   return ret
 end
 
-local function getdiffequ(bodies, bodytoskip)
+function getdiffequ(bodies, bodytoskip)
   local function diffequ(tn, yn)
     return createvec(yn[2], getaccelerationatapointdueto_multiple_bodies(yn[1], bodies, bodytoskip))
   end
   return diffequ
 end
 
+function deepcopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in next, orig, nil do
+            copy[deepcopy(orig_key)] = deepcopy(orig_value)
+        end
+        setmetatable(copy, deepcopy(getmetatable(orig)))
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
 
 function sim.updatewithforwardeuler(self, dt, stepsize)
   local bodies = self.bodies
+  MASTERLOG[MASTERLOGINDEX] = deepcopy(bodies)
+  MASTERLOGINDEX = MASTERLOGINDEX+1
 
   dt = dt or 0.01
 
@@ -84,7 +100,6 @@ function sim.updatewithforwardeuler(self, dt, stepsize)
     results[i] = forwardeuler(fun, tspan, y0, stepsize)
   end
 
-
   for i = 1, #bodies do
     __, y0 = unpack(results[i][#results[i]])
     p0 = y0[1]
@@ -94,6 +109,7 @@ function sim.updatewithforwardeuler(self, dt, stepsize)
     bodies[i][3] = v0[1]
     bodies[i][4] = v0[2]
   end
+  print(MASTERLOGINDEX)
 
   return dt
 
@@ -107,7 +123,7 @@ function sim.updatewithrk(self, dt, stepsize)
   local results = {}
 
   local fun
-  local stepsize = stepsize or 0.001
+  local stepsize = stepsize or 0.0001
   local numberofsteps = math.floor(dt/stepsize)
   local numberofsteps = numberofsteps == 0 and 1 or numberofsteps
   local tspan = {0, numberofsteps*stepsize}
@@ -126,29 +142,6 @@ function sim.updatewithrk(self, dt, stepsize)
     results[i] = y
   end
 
---------------START------------------------UGLYNESS TO PRESERVE SYMMETRY
-  local temp = {}
-  for i = 1, #bodies do
-    temp[i] = {}
-    y0 = results[i][#results[i]]
-    p0 = y0[1]
-    v0 = y0[2]
-    temp[i][1] = p0[1]
-    temp[i][2] = p0[2]
-    temp[i][3] = v0[1]
-    temp[i][4] = v0[2]
-  end
-  if not self:checkcenter(temp) then
-    local r = self:updatewithrk(dt, stepsize*love.math.random()*2)
-    if r ~= dt then
-      error()
-    else
-      return dt
-    end
-
-  end
-
-----------------END----------------------UGLYNESS TO PRESERVE SYMMETRY
   for i = 1, #bodies do
     y0 = results[i][#results[i]]
     p0 = y0[1]
@@ -162,26 +155,6 @@ function sim.updatewithrk(self, dt, stepsize)
   return dt
 
 end
-
---------------START------------------------UGLYNESS TO PRESERVE SYMMETRY
-function sim.checkcenter(self, temp)
-  local bodies = temp
-  local center_mass = {0, 0}
-  local center_vel = {0, 0}
-  for i = 1, #bodies do
-
-    center_mass[1] = center_mass[1] + bodies[i][1]
-    center_mass[2] = center_mass[2] + bodies[i][2]
-    center_vel[1] = center_vel[1] + bodies[i][3]
-    center_vel[2] = center_vel[2] + bodies[i][4]
-  end
-  if center_mass[1] ~= 0 or center_mass[2] ~= 0 or center_vel[1] ~= 0 or center_vel[2] ~= 0 then
-    return false
-  else
-    return true
-  end
-end
----------------END-----------------------UGLYNESS TO PRESERVE SYMMETRY
 
 function sim.updatewithrkFLAWED(self, dt, stepsize)
   local bodies = self.bodies
@@ -236,9 +209,20 @@ function sim.getgravity(self, x, y)
   return superrule(createvec(x, y), self.bodies)
 end
 
-function sim.init()
+function sim.init(bodies)
   local ret = {}
+  bodies = bodies or {}
   ret.bodies = {}
+  for b = 1, #bodies do
+    ret.bodies[b] = {}
+    for i = 1, 6 do
+      ret.bodies[b][i] =bodies[b][i]
+    end
+  end
+
+  MASTERLOG = {}
+  MASTERLOGINDEX = 1
+
   setmetatable(ret, {__index = sim})
   return ret
 end
@@ -259,6 +243,31 @@ end
 
 function sim.get_bodies(self)
   return self.bodies
+end
+
+function sim.printbodies(self)
+  local bodies = self.bodies
+  infostr = ""
+  for i = 1, 4 do
+    for ii = 1, 4 do
+
+      infostr = infostr.." "..string.format("%1.60f",bodies[i][ii])
+      infostr = infostr.."\n"
+    end
+    infostr = infostr.."\n"
+  end
+  print(infostr)
+end
+
+function sim.printcenter(self)
+  local bodies = self.bodies
+  local center_mass = {0, 0}
+  for i = 1, #bodies do
+
+    center_mass[1] = center_mass[1] + bodies[i].x
+    center_mass[2] = center_mass[2] + bodies[i].y
+  end
+  print(string.format("%1.60f",center_mass[1]), string.format("%1.60f",center_mass[2]))
 end
 
 return sim
